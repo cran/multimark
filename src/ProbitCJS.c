@@ -16,7 +16,7 @@
 // Define function ProbitCJSC to draw samples from the posterior distribution
 
 void ProbitCJSC(int *ichain, double *pbeta0, double *pprec0, double *pbeta, double *phibeta0, double *phiprec0, double *phibeta, double *zp, double *sigma2_zp, double *zphi, double *sigma2_zphi, double *delta_1, double *delta_2, double *alpha, int *x, double *psi, int *H, int *z,
-              int *noccas, int *M, double *a0delta, double *a0alpha, double *b0alpha, double *l0p, double *d0p, double *l0phi, double *d0phi,
+              int *noccas, int *M, double *a0delta, double *a0alpha, double *b0alpha, double *l0p, double *d0p, double *l0phi, double *d0phi, double *a0psi, double *b0psi,
               double *loglike,
               int *nHists, int *Allhists, int *C, int *L, int *indBasis, int *ncolBasis, int *knownx, double *DMp, double *DMphi, int *pdim, int *phidim,
               int *iter, int *thin, int *numbasis,
@@ -89,7 +89,7 @@ void ProbitCJSC(int *ichain, double *pbeta0, double *pprec0, double *pbeta, doub
     zphis[i] = ( *modphi_h ? zphi[i] : (double) 0.0);
     zphis2 += (zphis[i]*zphis[i]);
     Hs[i] = H[i];
-    qs[i] = (((C[Hs[i]]-1)<T) ? 1 : 0);
+    qs[i] = (Hs[i] ? (int) 1 : (int) 0);//(((C[Hs[i]]-1)<T) ? 1 : 0);
     ns += (double) qs[i];
     qnew[i] = qs[i];
     Hnew[i] = Hs[i];
@@ -222,11 +222,11 @@ void ProbitCJSC(int *ichain, double *pbeta0, double *pprec0, double *pbeta, doub
         }
         vbp = 1. / (preczps + Ttmp);
         zps[i]=rnorm((vbp*mbp),sqrt(vbp));
-        if(qs[i]) zps2 += zps[i]*zps[i];
+        zps2 += zps[i]*zps[i];
       }
       
       /* Update sigma2_zp */
-      sha = *l0p + ns/2.0;
+      sha = *l0p + supN/2.0;
       sca = *d0p + zps2/2.0;
       preczps = rgamma((double) sha, (double) (1.0/sca));
       sigma2_zps = 1. / preczps;
@@ -244,11 +244,11 @@ void ProbitCJSC(int *ichain, double *pbeta0, double *pprec0, double *pbeta, doub
         }
         vbphi = 1. / (preczphis + Ttmp);
         zphis[i]=rnorm((vbphi*mbphi),sqrt(vbphi));
-        if(qs[i]) zphis2 += zphis[i]*zphis[i];
+        zphis2 += zphis[i]*zphis[i];
       }
       
       /* Update sigma2_zphi */
-      sha = *l0phi + ns/2.0;
+      sha = *l0phi + supN/2.0;
       sca = *d0phi + zphis2/2.0;
       preczphis = rgamma((double) sha, (double) (1.0/sca));
       sigma2_zphis = 1. / preczphis;
@@ -345,7 +345,7 @@ void ProbitCJSC(int *ichain, double *pbeta0, double *pprec0, double *pbeta, doub
       
       nstar=0.;
       for(i=0; i<supN; i++){
-        qnew[i] = (((C[Hnew[i]]-1)<T) ? (int) 1 : (int) 0);//((Hnew[i]) ? (int) 1 : (int) 0);//
+        qnew[i] = (Hnew[i] ? (int) 1 : (int) 0);//(((C[Hnew[i]]-1)<T) ? (int) 1 : (int) 0);//
         nstar += (double) qnew[i];
         op += dbinom((double) qs[i],1.0,psis,1);
         np += dbinom((double) qnew[i],1.0,psis,1);
@@ -383,8 +383,8 @@ void ProbitCJSC(int *ichain, double *pbeta0, double *pprec0, double *pbeta, doub
     nstar=ns;
     
     /* Update psi */
-    sha = (double) 1.e-6 + ns;
-    sca= (double) 1.0 + supN - ns;
+    sha = (double) *a0psi + ns;
+    sca= (double) *b0psi + supN - ns;
     psis = rbeta(sha,sca);
     
     /* update up and uphi */    

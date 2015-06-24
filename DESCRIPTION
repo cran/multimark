@@ -2,9 +2,9 @@ Package: multimark
 Type: Package
 Title: Capture-Mark-Recapture Analysis using Multiple Non-Invasive
         Marks
-Version: 1.1.4
-Date: 2015-04-29
-Depends: R (>= 3.0.2)
+Version: 1.2.0
+Date: 2015-06-23
+Depends: R (>= 3.2.1)
 Imports: parallel, statmod, Matrix, RMark, coda, methods, Brobdingnag,
         mvtnorm
 Authors@R: c(person("Brett T.", "McClintock", email = "brett.mcclintock@noaa.gov",role = c("aut", "cre")),person("Acho", "Arnold",role = c("ctb","cph"), comment = "C original matrix library, https://github.com/najela/matrix.h"),person("Barry", "Brown",role = "ctb", comment = "Fortran original ranlib library"),person("James", "Lovato",role = "ctb", comment = "Fortran original ranlib library"),person("John", "Burkardt",role = "ctb", comment = "C original ranlib library, http://people.sc.fsu.edu/~jburkardt/c_src/ranlib"),person("Cleve", "Moler",role = "ctb", comment = "C original linpack library, http://www.kkant.net/geist/ranlib/"))
@@ -13,7 +13,7 @@ License: GPL-2
 LazyData: yes
 ByteCompile: TRUE
 NeedsCompilation: yes
-Packaged: 2015-04-29 20:56:45 UTC; Brett McClintock
+Packaged: 2015-06-23 20:37:49 UTC; Brett McClintock
 Author: Brett T. McClintock [aut, cre],
   Acho Arnold [ctb, cph] (C original matrix library,
     https://github.com/najela/matrix.h),
@@ -25,4 +25,4 @@ Author: Brett T. McClintock [aut, cre],
     http://www.kkant.net/geist/ranlib/)
 Maintainer: Brett T. McClintock <brett.mcclintock@noaa.gov>
 Repository: CRAN
-Date/Publication: 2015-05-05 07:53:08
+Date/Publication: 2015-06-24 01:06:56

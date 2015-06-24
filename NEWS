@@ -1,3 +1,18 @@
+multimark 1.2.0 2015-06-23
+-----------------
+NEW FEATURES
+
+* Beta prior for 'psi' parameter can now be user specified in 'multimarkCJS()' and 'multimarkClosed()' using 'a0psi' and 'b0psi' arguments
+
+* burn-in and thinning interval can now be user specified in 'multimodelCJS()' and 'multimodelClosed()' using 'mburnin' and 'mthin' arguments
+
+CHANGES
+
+* Minor bug fixes in updates for 'psi', 'sigma2_zp', and 'sigma2_zphi' in 'multimarkCJS()'
+
+* developed using R version 3.2.1 (2005-06-18); 'multimark' now requires R >=3.2.1 for compatibility with changes to base function 'nchar()'
+
+
 multimark 1.1.4 2015-04-29
 -----------------
 NEW FEATURES
