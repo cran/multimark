@@ -19,7 +19,7 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
               double *Propsd, double *accept, double *posterior,
               int *nHists, int *Allhists, int *C, int *indBasis, int *ncolBasis, int *knownx, double *DMp, double *DMc, int *pdim,
               int *iter, int *thin, int *adapt, int *bin, double *taccept, double *tuneadjust, int *numbasis,
-              int *npoints, double *weights, double *nodes, int *mod_h, int *data_type, int *zind, int *Hind, int *delta_type, int *printlog)
+              int *npoints, double *weights, double *nodes, int *mod_h, int *data_type, int *zind, int *Hind, int *updatedelta, int *delta_type, int *printlog)
 {
   
   GetRNGstate(); 
@@ -72,9 +72,10 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
   }
   sigma2_zs= ( *mod_h ? sigma2_z[0] : (double) 0.0);
   double sigma_zs = sqrt(sigma2_zs);
-  delta_1s=delta_1[0];
-  delta_2s=delta_2[0];
-  psis=psi[0];
+  delta_1s= (*updatedelta ? delta_1[0] : 1.);
+  delta_2s= (*updatedelta ? delta_2[0] : 0.);
+  alphas= (*updatedelta ? alpha[0] : 0.);
+  psis= (*updatedelta ? psi[0] : 1.);
 
   double ns=0.;
   for(i=0; i< supN; i++)  {
@@ -131,8 +132,6 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
   deltavect[0]=delta_1s;
   deltavect[1]=delta_2s;
   deltavect[2]=1.-delta_1s-delta_2s;
-  
-  alphas=alpha[0];
 
   /* Vector to store numerator of acceptance rate for each parameter  */   
   double arate[(dimp+supN+1)];       
@@ -149,7 +148,7 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
     
   /* Calculate the log-likelihood */  
   double ll=LIKE(p,c,qs,delta_1s,delta_2s,alphas,Allhists,Hs,T,supN,C,Ns,pstar);
-  posterior[0]=POSTERIOR(ll,betas,qs,zs,deltavect,alphas,sigma_zs,Ns,psis,mu0,sigma2_mu0,a0_delta,*a0alpha,*b0alpha,*A,*a0psi,*b0psi,supN,dimp,*mod_h,datatype,deltatype);
+  posterior[0]=POSTERIOR(ll,betas,qs,zs,deltavect,alphas,sigma_zs,Ns,psis,mu0,sigma2_mu0,a0_delta,*a0alpha,*b0alpha,*A,*a0psi,*b0psi,supN,dimp,*mod_h,datatype,*updatedelta,deltatype);
   if(!R_FINITE(ll)) {
     Rprintf("Fatal error in chain %d: initial likelihood is '%f'. \n",*ichain,ll);
     *iter = g;
@@ -257,24 +256,29 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
         }
       }
     }
-  
-    /* update alpha */
-    if(datatype){
-      sha = *a0alpha+FREQSUM(xs,Allhists,T,J,4);
-      sca = *b0alpha+FREQSUM(xs,Allhists,T,J,3);
-      alphas = rbeta(sha,sca);
-    }
     
-    /* update delta_1 and delta_2 */
-    if(deltatype){
-      GETDELTA(deltavect, xs, Allhists, T, J, 3, a0_delta); 
-      delta_1s=deltavect[0];
-      delta_2s=deltavect[1];   
-    } else {
-      sha = a0_delta[0] + FREQSUM(xs,Allhists,T,J,1) + FREQSUM(xs,Allhists,T,J,2);
-      sca = a0_delta[1] + FREQSUM(xs,Allhists,T,J,3) + FREQSUM(xs,Allhists,T,J,4);
-      delta_1s = rbeta(sha,sca) / 2.0;
-      delta_2s = delta_1s;
+    if(*updatedelta){
+      /* update alpha */
+      if(datatype){
+        sha = *a0alpha+FREQSUM(xs,Allhists,T,J,4);
+        sca = *b0alpha+FREQSUM(xs,Allhists,T,J,3);
+        alphas = rbeta(sha,sca);
+      }
+      /* update delta_1 and delta_2 */
+      if(deltatype){
+        GETDELTA(deltavect, xs, Allhists, T, J, 3, a0_delta); 
+        delta_1s=deltavect[0];
+        delta_2s=deltavect[1];   
+      } else {
+        sha = a0_delta[0] + FREQSUM(xs,Allhists,T,J,1) + FREQSUM(xs,Allhists,T,J,2);
+        sca = a0_delta[1] + FREQSUM(xs,Allhists,T,J,3) + FREQSUM(xs,Allhists,T,J,4);
+        delta_1s = rbeta(sha,sca) / 2.0;
+        delta_2s = delta_1s;
+      }
+      /* Update psi */
+      sha = (double) *a0psi + ns;
+      sca= (double) *b0psi + supN - ns;
+      psis = rbeta(sha,sca);
     }
     
     ll=LIKE(p,c,qs,delta_1s,delta_2s,alphas,Allhists,Hs,T,supN,C,Ns,pstar);
@@ -377,11 +381,6 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
     /* Update N */
     Ns=ns+rnbinom((double) ns,pstar);
     
-    /* Update psi */
-    sha = (double) *a0psi + ns;
-    sca= (double) *b0psi + supN - ns;
-    psis = rbeta(sha,sca);
-    
     ll=LIKE(p,c,qs,delta_1s,delta_2s,alphas,Allhists,Hs,T,supN,C,Ns,pstar);   
     
      /* Save draws according to thin specification */ 
@@ -422,7 +421,7 @@ void ClosedC(int *ichain, double *mu0, double *sigma2_mu0, double *beta, double 
         x[j]=xs[j];
       }
       
-      posterior[(g/th - 1)]=POSTERIOR(ll,betas,qs,zs,deltavect,alphas,sigma_zs,Ns,psis,mu0,sigma2_mu0,a0_delta,*a0alpha,*b0alpha,*A,*a0psi,*b0psi,supN,dimp,*mod_h,datatype,deltatype); 
+      posterior[(g/th - 1)]=POSTERIOR(ll,betas,qs,zs,deltavect,alphas,sigma_zs,Ns,psis,mu0,sigma2_mu0,a0_delta,*a0alpha,*b0alpha,*A,*a0psi,*b0psi,supN,dimp,*mod_h,datatype,*updatedelta,deltatype); 
       if(!R_FINITE(posterior[(g/th - 1)])) {Rprintf("Fatal error in chain %d: please report to <brett.mcclintock@noaa.gov> \n",*ichain); *iter = g; return;}
       
     }
@@ -523,30 +522,32 @@ double DDIRICHLET(double *x, double *alpha, int dim)
   return(logdens);
 }
 
-double POSTERIOR(double ll, double *beta, int *qs, double *z, double *deltavect, double alpha, double sigma_z, double Ns, double psi, double *mu0, double *sigma2_mu0, double *a0_delta, double a0_alpha, double b0_alpha, double A, double a0psi, double b0psi, int supN, int pdim, int modh, int datatype, int deltatype)
+double POSTERIOR(double ll, double *beta, int *qs, double *z, double *deltavect, double alpha, double sigma_z, double Ns, double psi, double *mu0, double *sigma2_mu0, double *a0_delta, double a0_alpha, double b0_alpha, double A, double a0psi, double b0psi, int supN, int pdim, int modh, int datatype, int updatedelta, int deltatype)
 {
   double pos=ll;
   int i,j;
   for(j=0; j<pdim; j++){
     pos += dnorm(beta[j],mu0[j],sqrt(sigma2_mu0[j]),1);
   }
-  for(i=0; i<supN; i++){
-    pos += dbinom((double) qs[i],1.0,psi,1);
-  }
-  pos += dbeta(psi,a0psi,b0psi,1);
   if(modh){
     for(i=0; i<supN; i++){
       pos += dnorm(z[i],0.0,sigma_z,1);
     }
     pos += log(2.0*dcauchy(sigma_z,0.0,A,0));
   }
-  if(deltatype){
-    pos += DDIRICHLET(deltavect,a0_delta,3);
-  } else {
-    pos += dbeta((deltavect[0]+deltavect[1]),a0_delta[0],a0_delta[1],1);
-  }
-  if(datatype){
-    pos += dbeta(alpha,a0_alpha,b0_alpha,1);
+  if(updatedelta){
+    if(deltatype){
+      pos += DDIRICHLET(deltavect,a0_delta,3);
+    } else {
+      pos += dbeta((deltavect[0]+deltavect[1]),a0_delta[0],a0_delta[1],1);
+    }
+    if(datatype){
+      pos += dbeta(alpha,a0_alpha,b0_alpha,1);
+    }
+    for(i=0; i<supN; i++){
+      pos += dbinom((double) qs[i],1.0,psi,1);
+    }
+    pos += dbeta(psi,a0psi,b0psi,1);
   }
   pos += -log(Ns);
   return(pos);
