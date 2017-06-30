@@ -2,8 +2,8 @@ Package: multimark
 Type: Package
 Title: Capture-Mark-Recapture Analysis using Multiple Non-Invasive
         Marks
-Version: 2.0.0
-Date: 2016-09-01
+Version: 2.0.1
+Date: 2017-06-30
 Depends: R (>= 3.2.1)
 Imports: parallel, Matrix, coda, statmod, RMark, Brobdingnag, mvtnorm,
         graphics, methods, stats, utils, prodlim, sp, raster
@@ -22,9 +22,9 @@ Description: Traditional and spatial capture-mark-recapture analysis with
 License: GPL-2
 LazyData: yes
 ByteCompile: TRUE
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 NeedsCompilation: yes
-Packaged: 2016-09-02 00:23:34 UTC; brett.mcclintock
+Packaged: 2017-06-30 18:09:56 UTC; brettmcclintock
 Author: Brett T. McClintock [aut, cre],
   Acho Arnold [ctb, cph] (C original matrix library,
     https://github.com/najela/matrix.h),
@@ -37,4 +37,4 @@ Author: Brett T. McClintock [aut, cre],
   Arjun Gopalaswamy [ctb] (modified snippets of R package SPACECAP code)
 Maintainer: Brett T. McClintock <brett.mcclintock@noaa.gov>
 Repository: CRAN
-Date/Publication: 2016-09-02 12:17:15
+Date/Publication: 2017-06-30 20:49:00 UTC
