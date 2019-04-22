@@ -8,9 +8,10 @@ markClosedSCR(Enc.Mat, trapCoords, studyArea = NULL, buffer = NULL,
   ncells = 1024, covs = data.frame(), mod.p = ~1,
   detection = "half-normal", parms = c("pbeta", "N"), nchains = 1,
   iter = 12000, adapt = 1000, bin = 50, thin = 1, burnin = 2000,
-  taccept = 0.44, tuneadjust = 0.95, proppbeta = 0.1, propsigma = 1,
-  propcenter = NULL, sigma_bounds = NULL, mu0 = 0, sigma2_mu0 = 1.75,
-  initial.values = NULL, scalemax = 10, printlog = FALSE, ...)
+  taccept = 0.44, tuneadjust = 0.95, proppbeta = 0.1,
+  propsigma = 1, propcenter = NULL, sigma_bounds = NULL, mu0 = 0,
+  sigma2_mu0 = 1.75, initial.values = NULL, scalemax = 10,
+  printlog = FALSE, ...)
 }
 \arguments{
 \item{Enc.Mat}{A matrix containing the observed encounter histories with rows corresponding to individuals and (\code{ntraps}*\code{noccas}) columns corresponding to traps and sampling occasions.  The first \code{noccas} columns correspond to trap 1, the second \code{noccas} columns corresopond to trap 2, etc.}
@@ -23,7 +24,7 @@ markClosedSCR(Enc.Mat, trapCoords, studyArea = NULL, buffer = NULL,
 
 \item{ncells}{The number of grid cells in the study area when \code{studyArea=NULL}. The square root of \code{ncells} must be a whole number. Default is \code{ncells=1024}. Ignored unless \code{studyArea=NULL} and \code{mms=NULL}.}
 
-\item{covs}{A data frame of temporal covariates for detection probabilities. The number of rows in the data frame must equal the number of sampling occasions. Covariate names cannot be "time", "c", or "h"; these names are reserved.}
+\item{covs}{A data frame of time- and/or trap-dependent covariates for detection probabilities (ignored unless \code{mms=NULL}). The number of rows in the data frame must equal the number of traps times the number of sampling occasions (\code{ntraps*noccas}), where the first \code{noccas} rows correspond to trap 1, the \code{noccas} rows correspond to trap 2, etc. Covariate names cannot be "time", "age", or "h"; these names are reserved for temporal, behavioral, and individual effects when specifying \code{mod.p} and \code{mod.phi}.}
 
 \item{mod.p}{Model formula for detection probability. For example, \code{mod.p=~1} specifies no effects (i.e., intercept only), \code{mod.p~time} specifies temporal effects, \code{mod.p~c} specifies behavioral reponse (i.e., trap "happy" or "shy"), \code{mod.p~trap} specifies trap effects, and \code{mod.p~time+c} specifies additive temporal and behavioral effects.}
 
@@ -103,6 +104,7 @@ tiger.dot<-markClosedSCR(Enc.Mat,trapCoords,studyArea,iter=100,adapt=50,burnin=5
 #Posterior summary for monitored parameters
 summary(tiger.dot$mcmc)
 plot(tiger.dot$mcmc)}
+
 }
 \references{
 Gopalaswamy, A.M., Royle, J.A., Hines, J.E., Singh, P., Jathanna, D., Kumar, N. and Karanth, K.U. 2012. Program SPACECAP: software for estimating animal density using spatially explicit capture-recapture models. \emph{Methods in Ecology and Evolution} 3:1067-1072.

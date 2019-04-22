@@ -2,11 +2,12 @@ Package: multimark
 Type: Package
 Title: Capture-Mark-Recapture Analysis using Multiple Non-Invasive
         Marks
-Version: 2.0.1
-Date: 2017-06-30
+Version: 2.1.0
+Date: 2019-04-21
 Depends: R (>= 3.2.1)
-Imports: parallel, Matrix, coda, statmod, RMark, Brobdingnag, mvtnorm,
-        graphics, methods, stats, utils, prodlim, sp, raster
+Imports: parallel, doParallel, foreach, Matrix, coda, statmod, RMark,
+        Brobdingnag, mvtnorm, graphics, methods, stats, utils, prodlim,
+        sp, raster, doRNG
 Authors@R: c(person("Brett T.", "McClintock", email = "brett.mcclintock@noaa.gov",role = c("aut", "cre")),person("Acho", "Arnold",role = c("ctb","cph"), comment = "C original matrix library, https://github.com/najela/matrix.h"),person("Barry", "Brown",role = "ctb", comment = "Fortran original ranlib library"),person("James", "Lovato",role = "ctb", comment = "Fortran original ranlib library"),person("John", "Burkardt",role = "ctb", comment = "C original ranlib library, http://people.sc.fsu.edu/~jburkardt/c_src/ranlib"),person("Cleve", "Moler",role = "ctb", comment = "C original linpack library, http://www.kkant.net/geist/ranlib/"),person("Arjun", "Gopalaswamy",role = "ctb", comment = "modified snippets of R package SPACECAP code"))
 Description: Traditional and spatial capture-mark-recapture analysis with
     multiple non-invasive marks. The models implemented in 'multimark' combine
@@ -22,9 +23,10 @@ Description: Traditional and spatial capture-mark-recapture analysis with
 License: GPL-2
 LazyData: yes
 ByteCompile: TRUE
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
+Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2017-06-30 18:09:56 UTC; brettmcclintock
+Packaged: 2019-04-22 01:44:46 UTC; brettmcclintock
 Author: Brett T. McClintock [aut, cre],
   Acho Arnold [ctb, cph] (C original matrix library,
     https://github.com/najela/matrix.h),
@@ -37,4 +39,4 @@ Author: Brett T. McClintock [aut, cre],
   Arjun Gopalaswamy [ctb] (modified snippets of R package SPACECAP code)
 Maintainer: Brett T. McClintock <brett.mcclintock@noaa.gov>
 Repository: CRAN
-Date/Publication: 2017-06-30 20:49:00 UTC
+Date/Publication: 2019-04-22 10:30:03 UTC

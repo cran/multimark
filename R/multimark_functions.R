@@ -98,7 +98,7 @@ NULL
 #' known <- c(rep(1,15),rep(0,nrow(Enc.Mat)-15))
 #' 
 #' # specify prior bounds for sigma2_scr
-#' sig_bounds <- c(0.01,max(diff(range(studyArea[,"x"])),diff(range(studyArea[,"y"]))))
+#' sig_bounds <- c(0.1,max(diff(range(studyArea[,"x"])),diff(range(studyArea[,"y"]))))
 #' 
 #' mmsSCR <- processdataSCR(Enc.Mat,trapCoords,studyArea,known=known)
 #' bobcatSCR.dot.type <- multimarkClosedSCR(mms=mmsSCR,iter=200,adapt=100,burnin=100,
@@ -132,6 +132,10 @@ NULL
 #' @examples
 #' showClass("multimarksetup")
 #' @keywords classes
+#' 
+#' @importFrom methods setClass
+#' @import Matrix
+#' @import coda
 setClass("multimarksetup", representation=list(Enc.Mat="matrix",data.type="character",vAll.hists="integer",Aprime="sparseMatrix",indBasis="integer",ncolbasis="integer",knownx="integer",C="integer",L="integer",naivex="integer",covs="data.frame"),
          prototype=list(Enc.Mat=matrix(0,0,0),data.type=character(),vAll.hists=integer(),Aprime=Matrix(0,0,0),indBasis=integer(),ncolbasis=integer(),knownx=integer(),C=integer(),L=integer(),naivex=integer(),covs=data.frame()),
          package="multimark")
@@ -163,6 +167,8 @@ setClass("multimarksetup", representation=list(Enc.Mat="matrix",data.type="chara
 #' @examples
 #' showClass("multimarkSCRsetup")
 #' @keywords classes
+#' 
+#' @importFrom methods setClass
 setClass("multimarkSCRsetup", representation=list(Enc.Mat="matrix",data.type="character",vAll.hists="integer",Aprime="sparseMatrix",indBasis="integer",ncolbasis="integer",knownx="integer",C="integer",L="integer",naivex="integer",covs="data.frame",spatialInputs="list"),
          prototype=list(Enc.Mat=matrix(0,0,0),data.type=character(),vAll.hists=integer(),Aprime=Matrix(0,0,0),indBasis=integer(),ncolbasis=integer(),knownx=integer(),C=integer(),L=integer(),naivex=integer(),covs=data.frame(),spatialInputs=list(trapCoords=matrix(0,0,0),studyArea=matrix(0,0,0),origCellRes=numeric(),Srange=numeric())),
          package="multimark")
@@ -170,6 +176,7 @@ setClass("multimarkSCRsetup", representation=list(Enc.Mat="matrix",data.type="ch
 
 tol <- 1.e-6
 
+#' @importFrom prodlim row.match
 getfreq<-function(Enc.Mat,vAll.hists,data.type){
   
   All.hists<-matrix(vAll.hists,ncol=ncol(Enc.Mat),byrow=TRUE)
@@ -186,6 +193,7 @@ getfreq<-function(Enc.Mat,vAll.hists,data.type){
   as.vector(temp.x,mode="integer")
 }
 
+#' @importFrom prodlim row.match
 get_A<-function(Enc.Mat,data.type){
   
   noccas<-ncol(Enc.Mat)
@@ -363,6 +371,7 @@ get_Enc <- function(tEnc.Mat,data.type){
   Enc.Mat
 }
 
+#' @importFrom prodlim row.match
 get_H <- function(mms,x){
   
   if(all(x==mms@naivex)){
@@ -950,7 +959,7 @@ get_known<-function(known,Enc.Mat,vAll.hists,data.type){
     if(length(known)!=M | base::sum(known)>M){
       stop(paste0("'known' must be an integer vector of length ",M," with sum between 0 and ",M))
     } else {
-      knownx <- getfreq(Enc.Mat[which(known>0),],vAll.hists,data.type)
+      knownx <- getfreq(Enc.Mat[which(known>0),,drop=FALSE],vAll.hists,data.type)
       knownx[1] <- integer(1) #ignore known all-zero histories
       if(base::sum(apply(Enc.Mat==3 | Enc.Mat==4,1,base::sum)>0)>base::sum(knownx)) stop("'known' vector misspecified. Encounter histories containing simultaneous encounters are known")     
     }
@@ -999,6 +1008,9 @@ get_known<-function(known,Enc.Mat,vAll.hists,data.type){
 #' 
 #' #Run single chain for bobcat data with temporal effects (i.e., mod.p=~time)
 #' bobcat.time <- multimarkClosed(mms=setup,mod.p=~time)}
+#' 
+#' @export
+#' @importFrom methods new
 processdata<-function(Enc.Mat,data.type="never",covs=data.frame(),known=integer()){
   
   if(!is.matrix(Enc.Mat)) stop("'Enc.Mat' must be a matrix")
@@ -1068,7 +1080,7 @@ processdata<-function(Enc.Mat,data.type="never",covs=data.frame(),known=integer(
 #'
 #'  \code{data.type="always"} indicates both type 1 and type 2 encounters are always observed, but some encounter histories may still include only type 1 or type 2 encounters. Observed encounter histories can consist of non-detections (0), type 1 encounters (1), type 2 encounters (2), and type 4 encounters (4). Latent encounter histories consist of non-detections (0), type 1 encounters (1), type 2 encounters (2), and type 4 encounters (4).
 #'
-#' @param covs A data frame of temporal covariates for detection probabilities (ignored unless \code{mms=NULL}). The number of rows in the data frame must equal the number of sampling occasions. Covariate names cannot be "time", "age", or "h"; these names are reserved for temporal, behavioral, and individual effects when specifying \code{mod.p} and \code{mod.phi}.
+#' @param covs A data frame of time- and/or trap-dependent covariates for detection probabilities (ignored unless \code{mms=NULL}). The number of rows in the data frame must equal the number of traps times the number of sampling occasions (\code{ntraps*noccas}), where the first \code{noccas} rows correspond to trap 1, the second \code{noccas} rows correspond to trap 2, etc. Covariate names cannot be "time", "age", or "h"; these names are reserved for temporal, behavioral, and individual effects when specifying \code{mod.p} and \code{mod.phi}.
 #' @param known Optional integer vector indicating whether the encounter history of an individual is known with certainty (i.e., the observed encounter history is the true encounter history). Encounter histories with at least one type 4 encounter are automatically assumed to be known, and \code{known} does not need to be specified unless there exist encounter histories that do not contain a type 4 encounter that happen to be known with certainty (e.g., from independent telemetry studies). If specified, \code{known = c(v_1,v_2,...,v_M)} must be a vector of length \code{M = nrow(Enc.Mat)} where \code{v_i = 1} if the encounter history for individual \code{i} is known (\code{v_i = 0} otherwise). Note that known all-zero encounter histories (e.g., `000') are ignored.
 #' @param scalemax Upper bound for internal re-scaling of grid cell centroid coordinates. Default is \code{scalemax=10}, which re-scales the centroids to be between 0 and 10.  Re-scaling is done internally to avoid numerical overflows during model fitting.
 #'
@@ -1105,6 +1117,9 @@ processdata<-function(Enc.Mat,data.type="never",covs=data.frame(),known=integer(
 #' #Run single chain using the default model for simulated data
 #' example.dot<-multimarkClosedSCR(mms=setup)}
 #' 
+#' @export
+#' @importFrom methods new
+#' @importFrom sp points2grid SpatialPoints bbox gridded SpatialGrid over coordinates
 processdataSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=NULL,data.type="never",covs=data.frame(),known=integer(),scalemax=10){
   
   if(!is.matrix(Enc.Mat)) stop("'Enc.Mat' must be a matrix")
@@ -1127,6 +1142,12 @@ processdataSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=NU
   noccas<-ncol(trapCoords[,-c(1,2),drop=FALSE])
   ntraps<-nrow(trapCoords)
   if(ncol(Enc.Mat)!=noccas*ntraps) stop("Dimensions of 'Enc.Mat' and 'trapCoords' are not consistent")
+  msk <- t(trapCoords[,-c(1,2)])
+  Yaug <- array(0, dim=c(nrow(Enc.Mat), noccas, ntraps))
+  for(j in 1:nrow(Enc.Mat)){
+    Yaug[j, 1:noccas, 1:ntraps] <- matrix(Enc.Mat[j,],nrow=noccas,ncol=ntraps)#byrow=TRUE))#Y[j, 1:nT, 1:ntraps]
+    if(any(Yaug[j,,]>0 & msk==0)) stop("individual ",j," in Enc.Mat includes encounter(s) on inactive trap(s)!")
+  }  
   
   if(is.null(studyArea)){
     if(is.null(buffer) | is.null(ncells)){
@@ -1138,8 +1159,16 @@ processdataSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=NU
     if(sqrt(ncells)%%1) stop("The square root of 'ncells' must be a whole number")
     trapbbox<-bbox(trapCoords[,1:2])
     studyArea<-as.matrix(expand.grid(seq(trapbbox[1,1]-buffer,trapbbox[1,2]+buffer,length=sqrt(ncells)),seq(trapbbox[2,1]-buffer,trapbbox[2,2]+buffer,length=sqrt(ncells)))) #study area grid
-    studyArea<-cbind(studyArea,rep(1,ncells))
-  }
+    cellsize<-sp::points2grid(sp::SpatialPoints(studyArea[,1:2]))@cellsize
+    # make sure cell grid cells are square
+    if(!(diff(range(cellsize)) < .Machine$double.eps ^ 0.5)){
+      studyArea<-as.matrix(expand.grid(seq(trapbbox[1,1]-buffer,trapbbox[1,2]+buffer,mean(cellsize)),seq(trapbbox[2,1]-buffer,trapbbox[2,2]+buffer,mean(cellsize))))
+      if(nrow(studyArea)!=ncells) warning("trap bounding box and buffer required ncells = ",nrow(studyArea)," in order to create square grid cells")
+    }
+    studyArea<-cbind(studyArea,rep(1,nrow(studyArea)))
+    origStudyArea <- studyArea
+    colnames(origStudyArea) <- c("x","y","avail")
+  } else origStudyArea <- studyArea
 
   checkSpatialInputs(trapCoords,studyArea)
   
@@ -1157,6 +1186,7 @@ processdataSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=NU
   
   spatialInputs=list()
   #availSpatialInputs$studyArea <- scale(G, center=minCoord, scale=rep(Grange,2))
+  spatialInputs$origStudyArea <- origStudyArea
   spatialInputs$studyArea <- studyArea
   spatialInputs$studyArea[,c("x","y")] <- scale(S, center=minCoord, scale=rep(Srange,2))
   spatialInputs$trapCoords <- trapCoords
@@ -1174,7 +1204,7 @@ processdataSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=NU
   
   if(length(covs)){
     if(nrow(covs)!=noccas*ntraps){
-      stop(paste("covariates (covs) must contain an entry for each occasion"))
+      stop(paste("covariates (covs) must contain an entry for each trap and occasion"))
     }
     nonames <- c("group","time","Time","c","h","type")
     if(any(match(colnames(covs),nonames,nomatch=0)>0)) stop(paste0("'",nonames[match(colnames(covs),nonames,nomatch=0)],"' cannot be used for covariate ('covs') names. "))
@@ -1220,6 +1250,7 @@ checkmats<-function(mat,dim,parm){
   mat
 }
 
+#' @importFrom utils setTxtProgressBar txtProgressBar
 inverseXB<-function(ichain,iout,betanames,mod.h,DM,noccas,varind,vars,parm,sigparm,link){
   
   if(!varind){
