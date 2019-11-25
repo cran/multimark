@@ -26,7 +26,7 @@
 #' 
 #'  \code{trapCoords} is a matrix of dimension \code{ntraps} x (2 + \code{noccas}) indicating the Cartesian coordinates and operating occasions for the traps, where rows correspond to trap, the first column the x-coordinate (``x''), and the second column the y-coordinate (``y''). The last \code{noccas} columns indicate whether or not the trap was operating on each of the occasions, where `1' indciates the trap was operating and `0' indicates the trap was not operating.  
 #'
-#'  \code{studyArea} is a 3-column matrix defining the study area and available habitat. Each row corresponds to a grid cell. The first 2 columns (``x'' and ``y'') indicate the Cartesian x- and y-coordinate for the centroid of each grid cell, and the third column (``avail'') indicates whether the cell is available habitat (=1) or not (=0). All grid cells must have the same resolution.
+#'  \code{studyArea} is a 3-column matrix defining the study area and available habitat. Each row corresponds to a grid cell. The first 2 columns (``x'' and ``y'') indicate the Cartesian x- and y-coordinate for the centroid of each grid cell, and the third column (``avail'') indicates whether the cell is available habitat (=1) or not (=0). All grid cells must have the same resolution. Note that rows should be ordered in raster cell order (raster cell numbers start at 1 in the upper left corner, and increase from left to right, and then from top to bottom).
 #'   
 #'  \code{centers} is a \code{N}-vector indicating the grid cell (i.e., the row of \code{studyArea}) that contains the true (latent) activity centers for each individual in the population. 
 #'
@@ -85,6 +85,7 @@ simdataClosedSCR <- function(N=30,ntraps=9,noccas=5,pbeta=0.25,tau=0,sigma2_scr=
     spatialInputs$trapCoords<-as.matrix(expand.grid(seq(0+buffer,scalemax-buffer,length=sqrt(ntraps)),seq(0+buffer,scalemax-buffer,length=sqrt(ntraps)))) #trap coordinates on square
     spatialInputs$trapCoords<-cbind(spatialInputs$trapCoords,matrix(1,nrow=ntraps,ncol=noccas)) # assumes all traps are operational on all occasions
     studyArea<-as.matrix(expand.grid(seq(0,scalemax,length=sqrt(ncells)),seq(0,scalemax,length=sqrt(ncells)))) #study area grid
+    studyArea <- studyArea[order(-studyArea[,2],studyArea[,1]),] # put in raster cell order (left to right, top left to bottom right)
     NN<-numeric()
     for(i in 1:nrow(spatialInputs$trapCoords)){
       od <- sqrt( (studyArea[,1]-spatialInputs$trapCoords[i,1])^2  +  (studyArea[,2]-spatialInputs$trapCoords[i,2])^2  )
@@ -164,6 +165,7 @@ simdataClosedSCR <- function(N=30,ntraps=9,noccas=5,pbeta=0.25,tau=0,sigma2_scr=
 #' @param mms An optional object of class \code{multimarkSCRsetup-class} from which the (re-scaled) study area and trap coordinates are plotted.
 #' @param trapCoords A matrix of dimension \code{ntraps} x (2 + \code{noccas}) indicating the Cartesian coordinates and operating occasions for the traps, where rows correspond to trap, the first column the x-coordinate, and the second column the y-coordinate. The last \code{noccas} columns indicate whether or not the trap was operating on each of the occasions, where `1' indciates the trap was operating and `0' indicates the trap was not operating. Ignored unless \code{mms=NULL}.  
 #' @param studyArea A 3-column matrix defining the study area and available habitat. Each row corresponds to a grid cell. The first 2 columns indicate the Cartesian x- and y-coordinate for the centroid of each grid cell, and the third column indicates whether the cell is available habitat (=1) or not (=0). All cells must have the same resolution. Ignored unless \code{mms=NULL}.
+#' Note that rows should be ordered in raster cell order (raster cell numbers start at 1 in the upper left corner, and increase from left to right, and then from top to bottom).
 #' @param centers An optional vector indicating the grid cell (i.e., the row of \code{studyArea}) that contains the true (latent) activity centers for each individual. If \code{mms} is provided, then \code{centers} must be of length \code{nrow(Enc.Mat)} (i.e., a center must be provided for each observed individual). 
 #' @param trapLines Logical indicating whether to draw lines from activity centers to respective traps at which each individual was captured. Default is \code{trapLines=FALSE}. Ignored when \code{mms=NULL} or \code{centers=NULL}. 
 #' @author Brett T. McClintock 
@@ -176,12 +178,13 @@ simdataClosedSCR <- function(N=30,ntraps=9,noccas=5,pbeta=0.25,tau=0,sigma2_scr=
 #' @importFrom sp points2grid SpatialPoints bbox gridded SpatialGrid over coordinates
 #' @importFrom raster extent raster rasterize
 #' @importFrom grDevices rainbow gray
+#' @importFrom utils capture.output
 plotSpatialData<-function(mms=NULL,trapCoords,studyArea,centers=NULL,trapLines=FALSE){
   
   cur.par<-par(no.readonly=TRUE)
   
   if(!is.null(mms)){
-    if(class(mms)=="multimarkSCRsetup"){
+    if(inherits(mms,"multimarkSCRsetup")){
       studyArea<-mms@spatialInputs$studyArea
       trapCoords<-mms@spatialInputs$trapCoords
       Enc.Mat<-mms@Enc.Mat
@@ -191,7 +194,14 @@ plotSpatialData<-function(mms=NULL,trapCoords,studyArea,centers=NULL,trapLines=F
   }
   checkSpatialInputs(trapCoords,studyArea,centers)
   
-  sAgrid<-SpatialGrid(points2grid(SpatialPoints(studyArea[,c("x","y")])))
+  gridtol <- checkGridTol(studyArea,warn=FALSE)
+  
+  if(!isTRUE(all.equal(1:nrow(studyArea),order(-studyArea[,"y"], studyArea[,"x"])))) {
+    warning("studyArea rows do not appear to be in raster cell order; these will be reordered accordingly")
+    studyArea <- studyArea[order(-studyArea[,"y"], studyArea[,"x"]),] # put in raster cell order (left to right, top left to bottom right)
+  }
+  
+  sAgrid<-sp::SpatialGrid(sp::points2grid(sp::SpatialPoints(studyArea[,c("x","y")]),tolerance = gridtol))
   e<-extent(sAgrid)
   cells.dim<-attributes(sAgrid)$grid@cells.dim
   r<-raster(e,nrow=cells.dim["y"],ncol=cells.dim["x"])
@@ -397,6 +407,18 @@ posteriorClosedSCR<-function(parms,DM,mms,priorparms,spatialInputs){
   }
 }
 
+checkGridTol <- function(studyArea,warn=TRUE){
+  gridtol <- sqrt(.Machine$double.eps)
+  checkTol <- tryCatch(sp::points2grid(sp::SpatialPoints(studyArea[,1:2])),error=function(e) e)
+  if(inherits(checkTol,"error")){
+    tmp <- utils::capture.output(tryCatch(sp::points2grid(sp::SpatialPoints(studyArea[,1:2])),error=function(e){} ))
+    tmp <- tmp[-which(tmp=="NULL")]
+    gridtol <- as.numeric(gsub("suggested tolerance minimum:","",tmp))
+    if(warn) warning(gsub("Error in ","",checkTol),"   tolerance set to ",gridtol," -- if this number isn't very small then check studyArea coordinates!")
+  }
+  gridtol
+}
+
 checkSpatialInputs<-function(trapCoords,studyArea,centers=NULL){
   
   if(ncol(studyArea)!=3){
@@ -409,14 +431,16 @@ checkSpatialInputs<-function(trapCoords,studyArea,centers=NULL){
     stop("Indicators for each occasion in 'trapCoords' must be 0 or 1")
   }
   
-  if(!gridded(SpatialGrid(points2grid(SpatialPoints(studyArea[,1:2]))))){
+  gridtol <- checkGridTol(studyArea,warn=TRUE)
+  
+  if(!sp::gridded(SpatialGrid(sp::points2grid(sp::SpatialPoints(studyArea[,1:2]),tolerance = gridtol)))){
     stop("'studyArea' must be a regular grid ")
   } 
   
-  cellsize<-sp::points2grid(sp::SpatialPoints(studyArea[,1:2]))@cellsize
+  cellsize<-sp::points2grid(sp::SpatialPoints(studyArea[,1:2]),tolerance = gridtol)@cellsize
   if(!(diff(range(cellsize)) < .Machine$double.eps ^ 0.5)) stop("studyArea grid cells must be square")
   
-  if(any(is.na(over(SpatialPoints(trapCoords[,1:2]),SpatialGrid(points2grid(SpatialPoints(studyArea[,1:2]))))))){
+  if(any(is.na(sp::over(sp::SpatialPoints(trapCoords[,1:2]),sp::SpatialGrid(sp::points2grid(sp::SpatialPoints(studyArea[,1:2]),tolerance = gridtol)))))){
     stop("'trapCoords' must be within 'studyArea'")
   }
   if(!is.null(centers)){
@@ -627,7 +651,8 @@ getSpatialInputs<-function(mms){
   spatialInputs=list()
   spatialInputs$studyArea <- mms@spatialInputs$studyArea[which(mms@spatialInputs$studyArea[,"avail"]==1),c("x","y")]  # available habitat study area
   spatialInputs$trapCoords <- mms@spatialInputs$trapCoords[,c(1,2)]
-  spatialInputs$a <- sp::points2grid(sp::SpatialPoints(mms@spatialInputs$studyArea[,1:2]))@cellsize[1]
+  gridtol <- checkGridTol(mms@spatialInputs$studyArea,warn=FALSE)
+  spatialInputs$a <- sp::points2grid(sp::SpatialPoints(mms@spatialInputs$studyArea[,1:2]),tolerance = gridtol)@cellsize[1]
   spatialInputs$A <- spatialInputs$a * nrow(spatialInputs$studyArea)
   spatialInputs$dist2 <- getdist(spatialInputs$studyArea,spatialInputs$trapCoords)
   spatialInputs$msk <- mms@spatialInputs$trapCoords[,-c(1,2),drop=FALSE]
@@ -657,12 +682,13 @@ getPropCenter<-function(spatialInputs,propcenter){
 #' @param Enc.Mat A matrix containing the observed encounter histories with rows corresponding to individuals and (\code{ntraps}*\code{noccas}) columns corresponding to traps and sampling occasions.  The first \code{noccas} columns correspond to trap 1, the second \code{noccas} columns corresopond to trap 2, etc.
 #' @param trapCoords A matrix of dimension \code{ntraps} x (2 + \code{noccas}) indicating the Cartesian coordinates and operating occasions for the traps, where rows correspond to trap, the first column the x-coordinate (``x''), and the second column the y-coordinate (``y''). The last \code{noccas} columns indicate whether or not the trap was operating on each of the occasions, where `1' indciates the trap was operating and `0' indicates the trap was not operating. Ignored unless \code{mms=NULL}.
 #' @param studyArea is a 3-column matrix containing the coordinates for the centroids a contiguous grid of cells that define the study area and available habitat. Each row corresponds to a grid cell. The first 2 columns (``x'' and ``y'') indicate the Cartesian x- and y-coordinate for the centroid of each grid cell, and the third column (``avail'') indicates whether the cell is available habitat (=1) or not (=0). All cells must have the same resolution. If \code{studyArea=NULL} (the default) and  \code{mms=NULL}, then a square study area grid composed of \code{ncells} cells of available habitat is drawn around the bounding box of \code{trapCoords} based on \code{buffer}. Ignored unless \code{mms=NULL}.
+#' Note that rows should be ordered by raster cell order (raster cell numbers start at 1 in the upper left corner, and increase from left to right, and then from top to bottom).
 #' @param buffer A scaler in same units as \code{trapCoords} indicating the buffer around the bounding box of \code{trapCoords} for defining the study area when \code{studyArea=NULL}.  Ignored unless \code{studyArea=NULL}.
 #' @param ncells The number of grid cells in the study area when \code{studyArea=NULL}. The square root of \code{ncells} must be a whole number. Default is \code{ncells=1024}. Ignored unless \code{studyArea=NULL} and \code{mms=NULL}.
 #' @param covs A data frame of time- and/or trap-dependent covariates for detection probabilities (ignored unless \code{mms=NULL}). The number of rows in the data frame must equal the number of traps times the number of sampling occasions (\code{ntraps*noccas}), where the first \code{noccas} rows correspond to trap 1, the \code{noccas} rows correspond to trap 2, etc. Covariate names cannot be "time", "age", or "h"; these names are reserved for temporal, behavioral, and individual effects when specifying \code{mod.p} and \code{mod.phi}.
 #' @param mod.p Model formula for detection probability. For example, \code{mod.p=~1} specifies no effects (i.e., intercept only), \code{mod.p~time} specifies temporal effects, \code{mod.p~c} specifies behavioral reponse (i.e., trap "happy" or "shy"), \code{mod.p~trap} specifies trap effects, and \code{mod.p~time+c} specifies additive temporal and behavioral effects.
 #' @param detection Model for detection probability as a function of distance from activity centers . Must be "\code{half-normal}" (of the form \eqn{\exp{(-d^2 / (2*\sigma^2))}}, where \eqn{d} is distance) or "\code{exponential}" (of the form \eqn{\exp{(-d / \lambda)}}).
-#' @param parms A character vector giving the names of the parameters and latent variables to monitor. Possible parameters are cloglog-scale detection probability parameters ("\code{pbeta}"), population abundance ("\code{N}"), cloglog-scale distance term for the detection function ("\code{sigma2_scr}" when \code{detection=``half-normal''} or "\code{lambda}" when \code{detection=``exponential''}), and the probability that a randomly selected individual from the \code{M = nrow(Enc.Mat)} observed individuals belongs to the \eqn{n} unique individuals encountered at least once ("\code{psi}"). Individual activity centers ("\code{centers}"), and the log posterior density ("\code{logPosterior}") may also be monitored. Setting \code{parms="all"} monitors all possible parameters and latent variables.
+#' @param parms A character vector giving the names of the parameters and latent variables to monitor. Possible parameters are cloglog-scale detection probability parameters ("\code{pbeta}"), population abundance ("\code{N}"), and cloglog-scale distance term for the detection function ("\code{sigma2_scr}" when \code{detection=``half-normal''} or "\code{lambda}" when \code{detection=``exponential''}). Individual activity centers ("\code{centers}") and the log posterior density ("\code{logPosterior}") may also be monitored. Setting \code{parms="all"} monitors all possible parameters and latent variables.
 #' @param nchains The number of parallel MCMC chains for the model.
 #' @param iter The number of MCMC iterations.
 #' @param adapt The number of iterations for proposal distribution adaptation. If \code{adapt = 0} then no adaptation occurs.
@@ -738,6 +764,7 @@ markClosedSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=102
 #' @param Enc.Mat A matrix containing the observed encounter histories with rows corresponding to individuals and (\code{ntraps}*\code{noccas}) columns corresponding to traps and sampling occasions.  The first \code{noccas} columns correspond to trap 1, the second \code{noccas} columns corresopond to trap 2, etc. Ignored unless \code{mms=NULL}.
 #' @param trapCoords A matrix of dimension \code{ntraps} x (2 + \code{noccas}) indicating the Cartesian coordinates and operating occasions for the traps, where rows correspond to trap, the first column the x-coordinate (``x''), and the second column the y-coordinate (``y''). The last \code{noccas} columns indicate whether or not the trap was operating on each of the occasions, where `1' indciates the trap was operating and `0' indicates the trap was not operating. Ignored unless \code{mms=NULL}.
 #' @param studyArea is a 3-column matrix containing the coordinates for the centroids of a contiguous grid of cells that define the study area and available habitat. Each row corresponds to a grid cell. The first 2 columns (``x'' and ``y'') indicate the Cartesian x- and y-coordinate for the centroid of each grid cell, and the third column (``avail'') indicates whether the cell is available habitat (=1) or not (=0). All cells must be square and have the same resolution. If \code{studyArea=NULL} (the default) and  \code{mms=NULL}, then a square study area grid composed of \code{ncells} cells of available habitat is drawn around the bounding box of \code{trapCoords} based on \code{buffer}. Ignored unless \code{mms=NULL}.
+#' Note that rows should be ordered in raster cell order (raster cell numbers start at 1 in the upper left corner, and increase from left to right, and then from top to bottom).
 #' @param buffer A scaler in same units as \code{trapCoords} indicating the buffer around the bounding box of \code{trapCoords} for defining the study area when \code{studyArea=NULL}.  Ignored unless \code{studyArea=NULL} and \code{mms=NULL}.
 #' @param ncells The number of grid cells in the study area when \code{studyArea=NULL}. The square root of \code{ncells} must be a whole number. Default is \code{ncells=1024}. Ignored unless \code{studyArea=NULL} and \code{mms=NULL}.
 #' @param data.type Specifies the encounter history data type. All data types include non-detections (type 0 encounter), type 1 encounter (e.g., left-side), and type 2 encounters (e.g., right-side). When both type 1 and type 2 encounters occur for the same individual within a sampling occasion, these can either be "non-simultaneous" (type 3 encounter) or "simultaneous" (type 4 encounter). Three data types are currently permitted:
@@ -833,14 +860,14 @@ markClosedSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=102
 multimarkClosedSCR<-function(Enc.Mat,trapCoords,studyArea=NULL,buffer=NULL,ncells=1024,data.type="never",covs=data.frame(),mms=NULL,mod.p=~1,mod.delta=~type,detection="half-normal",parms=c("pbeta","delta","N"),nchains=1,iter=12000,adapt=1000,bin=50,thin=1,burnin=2000,taccept=0.44,tuneadjust=0.95,proppbeta=0.1,propsigma=1,propcenter=NULL,maxnumbasis=1,a0delta=1,a0alpha=1,b0alpha=1,sigma_bounds=NULL,mu0=0,sigma2_mu0=1.75,a0psi=1,b0psi=1,initial.values=NULL,known=integer(),scalemax=10,printlog=FALSE,...){
   
   if(is.null(mms)) mms <- processdataSCR(Enc.Mat,trapCoords,studyArea,buffer,ncells,data.type,covs,known,scalemax)
-  if(class(mms)!="multimarkSCRsetup") stop("'mms' must be an object of class 'multimarkSCRsetup'")
+  if(!inherits(mms,"multimarkSCRsetup")) stop("'mms' must be an object of class 'multimarkSCRsetup'")
   validObject(mms)
   
   match.arg(detection,c("half-normal","exponential"))
   if(is.null(detection)) stop("detection function cannot be NULL")
   
-  if(class(mod.p)!="formula") stop("'mod.p' must be an object of class 'formula'")
-  if(class(mod.delta)!="formula") stop("'mod.delta' must be an object of class 'formula'")
+  if(!inherits(mod.p,"formula")) stop("'mod.p' must be an object of class 'formula'")
+  if(!inherits(mod.delta,"formula")) stop("'mod.delta' must be an object of class 'formula'")
   DM<-get_DMClosed(mod.p,mod.delta,mms@Enc.Mat,covs=mms@covs,ntraps=nrow(mms@spatialInputs$trapCoords),detection=detection,...)
   
   if(iter>0){
