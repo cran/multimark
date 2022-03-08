@@ -1,6 +1,6 @@
-4fcb97754d3cb9e4416cf290caa97a2a *DESCRIPTION
+78a7154d4d82a123c78735d425e1c462 *DESCRIPTION
 f7566dd0520d9f0ce56abc88440da9f7 *NAMESPACE
-7a4e7ae8b21d3736140037fb116ae013 *NEWS
+941fc87a8c267fe6a449d2925b3ef76a *NEWS
 7566f7ab6d0cbcece9cd454dc11facf0 *R/CJS.R
 5bef1ec3ec46dd1edc170c9f98e95fc7 *R/Closed.R
 d178a2f25ab03e22b690b3fd78c0b151 *R/ClosedSCR.R
@@ -40,7 +40,7 @@ cec78eb6d8686937c4ad4d9049544a1f *src/ClosedSCR.c
 efae4cdcaec96d2363b35feac6325961 *src/matrix.c
 0f0cb230330e4be075ac67820ed36fe9 *src/matrix.h
 7633079484556e34d68a85b54d858f51 *src/multimark_init.c
-ca3da72affa8279b7a692ffee4407a93 *src/ranlib.c
+359b0d6e03553d1c954f631e1d9ba43d *src/ranlib.c
 abb351076ae3babc31d05bee3664ccf5 *src/ranlib.h
 ad6e4aaabaa6885e68a899bed11cc8c8 *tests/testthat.R
 c3c9f522f1deac554583171ed3de4d22 *tests/testthat/test_CJS.R
