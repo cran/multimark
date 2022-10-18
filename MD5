@@ -1,6 +1,6 @@
-78a7154d4d82a123c78735d425e1c462 *DESCRIPTION
+aba40df85e4708b54ccdf0f1255b8295 *DESCRIPTION
 f7566dd0520d9f0ce56abc88440da9f7 *NAMESPACE
-941fc87a8c267fe6a449d2925b3ef76a *NEWS
+e5212c26b7d7508adfc8820f3dcfe034 *NEWS
 7566f7ab6d0cbcece9cd454dc11facf0 *R/CJS.R
 5bef1ec3ec46dd1edc170c9f98e95fc7 *R/Closed.R
 d178a2f25ab03e22b690b3fd78c0b151 *R/ClosedSCR.R
@@ -34,9 +34,11 @@ b0d520051abadf58eb2e2626ebefb995 *man/multimodelCJS.Rd
 aa6310ef35220a4b136251501f990ef0 *man/simdataClosed.Rd
 0a061d2b794445504b87512db7fa1569 *man/simdataClosedSCR.Rd
 5c9bb51f17980c82a1d33b4630a7630a *man/tiger.Rd
-2ea1028d4d8c48eb6d27f96a702775c9 *src/Closed.c
-cec78eb6d8686937c4ad4d9049544a1f *src/ClosedSCR.c
-288c4575f990323cf9b210599c593ab0 *src/ProbitCJS.c
+99d909ad7f602de0f306f7eb02086db5 *src/Closed.c
+6c89d62ab3c0aa219f5e0100e0267eaa *src/ClosedSCR.c
+244d11d5d4e80a67473acdc7e450b080 *src/ProbitCJS.c
+ad69dffd9aa2a6bf6e8506b0ec9d31ba *src/func.c
+8b772e11ef8330f072621e8f3a90daee *src/func.h
 efae4cdcaec96d2363b35feac6325961 *src/matrix.c
 0f0cb230330e4be075ac67820ed36fe9 *src/matrix.h
 7633079484556e34d68a85b54d858f51 *src/multimark_init.c
